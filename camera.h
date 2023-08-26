@@ -11,12 +11,13 @@
 #include <queue>
 using namespace std;
 
-#define THREAD_COUNT 1
+#define THREAD_COUNT 50
+
+static unsigned int NUM_TASK;
 
 static std::vector<colour> COLOUR_VEC;
-// std::mutex world_mut;
 std::mutex task_mutex;
-std::queue<std::pair<int, int>> TASK_Q;
+std::queue<int> TASK_Q;
 std::vector<std::thread> PIXEL_THREADS(THREAD_COUNT);
 
 class camera
@@ -36,6 +37,11 @@ public:
     double defocus_angle = 0; // Variation angle of rays through each pixel
     double focus_dist = 10;   // Distance from camera lookfrom point to plane of perfect focus
 
+    /**
+     * CAUTION: Multithreaded implementation!!!
+     * A Thread is assigned to each row and 
+     * no locks are used other than for accessing the task queue
+    */
     void render(const hittable &world)
     {
         initialize();
@@ -43,15 +49,13 @@ public:
         cout << "P3\n"
              << image_width << ' ' << image_height << "\n255\n";
         for (int j = 0; j < image_height; ++j)
-        {
-            for (int i = 0; i < image_width; ++i)
-            {
-                TASK_Q.push(std::make_pair(i, j));
-            }
+        {   
+            TASK_Q.push(j);
+            NUM_TASK++;
         }
         for (int k = 0; k < THREAD_COUNT; ++k)
         {
-            clog << "thread number: "<< k+1 << " initialized \n";
+            clog << "thread number: " << k + 1 << " initialized \n";
             PIXEL_THREADS[k] = std::thread(&camera::assign_thread_task, this, std::ref(world));
         }
         for (auto &th : PIXEL_THREADS)
@@ -70,34 +74,34 @@ public:
     {
         while (true)
         {
-            std::pair<int, int> task_index;
+            int pixel_column;
             int curr_q_size;
             {
                 std::lock_guard<std::mutex> lock(task_mutex);
                 if (TASK_Q.empty())
                 {
-                curr_q_size = 0;
+                    curr_q_size = 0;
                     break; //exit because no more tasks available
                 }
-                curr_q_size = TASK_Q.size();
-                task_index = TASK_Q.front();
+                pixel_column = TASK_Q.front();
                 TASK_Q.pop();
+                clog << "\rScanlines remaining: " << --NUM_TASK << ' ' << flush;
             }
-            this->colour_pixel(task_index.first, task_index.second, world);
-            clog << "\rScanlines remaining: " << ((image_height * image_width) - curr_q_size) << ' ' << flush;
+            this->colour_pixel(pixel_column, world);
         }
     }
-    void colour_pixel(int i, int j, const hittable &world)
+    void colour_pixel(int pixel_column, const hittable &world)
     {
-        colour pixel_color(0, 0, 0);
-        for (int sample = 0; sample < samples_per_pixel; ++sample)
+        for (int i = 0; i < image_width; ++i)
         {
-            ray r = get_ray(i, j);
-            // std::lock_guard<std::mutex> guard(world_mut);
-            pixel_color += ray_colour(r, max_depth, world);
+            colour pixel_color(0, 0, 0);
+            for (int sample = 0; sample < samples_per_pixel; ++sample)
+            {
+                ray r = get_ray(i, pixel_column);
+                pixel_color += ray_colour(r, max_depth, world);
+            }
+            COLOUR_VEC[(pixel_column * image_width) + i] = pixel_color;
         }
-        COLOUR_VEC[j * image_width + i] = pixel_color;
-
         return;
     }
 
@@ -154,7 +158,6 @@ private:
             return colour(0, 0, 0);
         bool world_hit = false;
         {
-            // std::lock_guard<std::mutex> guard(world_mut);
             world_hit = world.hit(r, interval(0.001, infinity), rec);
         }
         if (world_hit)
