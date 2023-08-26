@@ -16,7 +16,6 @@ using namespace std;
 */
 int main()
 {
-    auto start = high_resolution_clock::now();
     hittable_list world;
 
     auto material_ground = make_shared<lambertian>(colour(0.8, 0.8, 0.0));
@@ -45,11 +44,12 @@ int main()
     cam.defocus_angle = 10.0;
     cam.focus_dist = 3.4;
 
+    auto start = high_resolution_clock::now();
     cam.render(world);
     auto stop = high_resolution_clock::now();
 
     auto duration = duration_cast<seconds>(stop - start);
 
-    clog << "this is how long it took in seconds: "<<duration.count();
+    clog << "this is how long the render took in seconds: "<<duration.count();
     return 0;
 }

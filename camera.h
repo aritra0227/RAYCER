@@ -8,11 +8,16 @@
 #include "material.h"
 #include <thread>
 #include <mutex>
+#include <queue>
 using namespace std;
+
+#define THREAD_COUNT 1
 
 static std::vector<colour> COLOUR_VEC;
 // std::mutex world_mut;
-std::vector<std::thread> PIXEL_THREADS;
+std::mutex task_mutex;
+std::queue<std::pair<int, int>> TASK_Q;
+std::vector<std::thread> PIXEL_THREADS(THREAD_COUNT);
 
 class camera
 {
@@ -39,8 +44,15 @@ public:
              << image_width << ' ' << image_height << "\n255\n";
         for (int j = 0; j < image_height; ++j)
         {
-            clog << "\rScanlines remaining: " << (image_height - j) << ' ' << flush;
-            PIXEL_THREADS[j] = std::thread(&camera::colour_pixel, this, j, std::ref(world));
+            for (int i = 0; i < image_width; ++i)
+            {
+                TASK_Q.push(std::make_pair(i, j));
+            }
+        }
+        for (int k = 0; k < THREAD_COUNT; ++k)
+        {
+            clog << "thread number: "<< k+1 << " initialized \n";
+            PIXEL_THREADS[k] = std::thread(&camera::assign_thread_task, this, std::ref(world));
         }
         for (auto &th : PIXEL_THREADS)
         {
@@ -53,19 +65,39 @@ public:
         }
         clog << "\rDone.                 \n";
     }
-    void colour_pixel(int j, const hittable &world)
+
+    void assign_thread_task(const hittable &world)
     {
-        for (int i = 0; i < image_width; ++i)
+        while (true)
         {
-            colour pixel_color(0, 0, 0);
-            for (int sample = 0; sample < samples_per_pixel; ++sample)
+            std::pair<int, int> task_index;
+            int curr_q_size;
             {
-                ray r = get_ray(i, j);
-                // std::lock_guard<std::mutex> guard(world_mut);
-                pixel_color += ray_colour(r, max_depth, world);
+                std::lock_guard<std::mutex> lock(task_mutex);
+                if (TASK_Q.empty())
+                {
+                curr_q_size = 0;
+                    break; //exit because no more tasks available
+                }
+                curr_q_size = TASK_Q.size();
+                task_index = TASK_Q.front();
+                TASK_Q.pop();
             }
-            COLOUR_VEC[j * image_width + i] = pixel_color;
+            this->colour_pixel(task_index.first, task_index.second, world);
+            clog << "\rScanlines remaining: " << ((image_height * image_width) - curr_q_size) << ' ' << flush;
         }
+    }
+    void colour_pixel(int i, int j, const hittable &world)
+    {
+        colour pixel_color(0, 0, 0);
+        for (int sample = 0; sample < samples_per_pixel; ++sample)
+        {
+            ray r = get_ray(i, j);
+            // std::lock_guard<std::mutex> guard(world_mut);
+            pixel_color += ray_colour(r, max_depth, world);
+        }
+        COLOUR_VEC[j * image_width + i] = pixel_color;
+
         return;
     }
 
@@ -84,7 +116,7 @@ private:
         image_height = static_cast<int>(image_width / aspect_ratio);
         image_height = (image_height < 1) ? 1 : image_height;
         COLOUR_VEC.resize(image_height * image_width); //allocate vector for number of pixels
-        PIXEL_THREADS.resize(image_height);
+        // PIXEL_THREADS.resize(image_height);
         camera_center = lookfrom;
 
         // Determine viewport dimensions.
