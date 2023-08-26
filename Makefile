@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -Wall -Wextra -std=c++11
+CFLAGS = -Wall -Wextra -std=c++11 -pthread
 SRCS = main.cpp 
 
 OBJS = $(SRCS:.cpp=.o)

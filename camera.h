@@ -6,7 +6,13 @@
 #include "colour.h"
 #include "hittable.h"
 #include "material.h"
+#include <thread>
+#include <mutex>
 using namespace std;
+
+static std::vector<colour> COLOUR_VEC;
+// std::mutex world_mut;
+std::vector<std::thread> PIXEL_THREADS;
 
 class camera
 {
@@ -34,18 +40,33 @@ public:
         for (int j = 0; j < image_height; ++j)
         {
             clog << "\rScanlines remaining: " << (image_height - j) << ' ' << flush;
-            for (int i = 0; i < image_width; ++i)
-            {
-                colour pixel_color(0, 0, 0);
-                for (int sample = 0; sample < samples_per_pixel; ++sample)
-                {
-                    ray r = get_ray(i, j);
-                    pixel_color += ray_colour(r, max_depth, world);
-                }
-                write_colour(std::cout, pixel_color, samples_per_pixel);
-            }
+            PIXEL_THREADS[j] = std::thread(&camera::colour_pixel, this, j, std::ref(world));
+        }
+        for (auto &th : PIXEL_THREADS)
+        {
+            th.join();
+        }
+
+        for (colour pixel : COLOUR_VEC)
+        {
+            write_colour(std::cout, pixel, samples_per_pixel);
         }
         clog << "\rDone.                 \n";
+    }
+    void colour_pixel(int j, const hittable &world)
+    {
+        for (int i = 0; i < image_width; ++i)
+        {
+            colour pixel_color(0, 0, 0);
+            for (int sample = 0; sample < samples_per_pixel; ++sample)
+            {
+                ray r = get_ray(i, j);
+                // std::lock_guard<std::mutex> guard(world_mut);
+                pixel_color += ray_colour(r, max_depth, world);
+            }
+            COLOUR_VEC[j * image_width + i] = pixel_color;
+        }
+        return;
     }
 
 private:
@@ -62,7 +83,8 @@ private:
     {
         image_height = static_cast<int>(image_width / aspect_ratio);
         image_height = (image_height < 1) ? 1 : image_height;
-
+        COLOUR_VEC.resize(image_height * image_width); //allocate vector for number of pixels
+        PIXEL_THREADS.resize(image_height);
         camera_center = lookfrom;
 
         // Determine viewport dimensions.
@@ -98,7 +120,12 @@ private:
         hit_record rec;
         if (depth <= 0)
             return colour(0, 0, 0);
-        if (world.hit(r, interval(0.001, infinity), rec))
+        bool world_hit = false;
+        {
+            // std::lock_guard<std::mutex> guard(world_mut);
+            world_hit = world.hit(r, interval(0.001, infinity), rec);
+        }
+        if (world_hit)
         {
             ray scattered;
             colour attenuation;
@@ -132,7 +159,8 @@ private:
         return (px * pixel_delta_u) + (py * pixel_delta_v);
     }
 
-    point3 defocus_disk_sample() const {
+    point3 defocus_disk_sample() const
+    {
         // Returns a random point in the camera defocus disk.
         vec3 p = random_in_unit_disk();
         return camera_center + (p[0] * defocus_disk_u) + (p[1] * defocus_disk_v);
