@@ -11,7 +11,7 @@
 #include <queue>
 using namespace std;
 
-#define THREAD_COUNT 50
+#define THREAD_COUNT 8
 
 static unsigned int NUM_TASK;
 

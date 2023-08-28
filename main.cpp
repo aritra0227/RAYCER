@@ -5,6 +5,7 @@
 #include "hittable_list.h"
 #include "material.h"
 #include "sphere.h"
+#include "triangle.h"
 #include "utilities.h"
 #include <chrono>
 using namespace std::chrono;
@@ -20,11 +21,16 @@ int main()
 
     auto material_ground = make_shared<lambertian>(colour(0.8, 0.8, 0.0));
     auto material_center = make_shared<lambertian>(colour(0.1, 0.2, 0.5));
+    auto ball_color = make_shared<lambertian>(colour(1, 0.2, 0.5));
     auto material_left = make_shared<dielectric>(1.5);
     auto material_right = make_shared<metal>(colour(0.8, 0.6, 0.2), 0.0);
 
     world.add(make_shared<sphere>(point3(0.0, -100.5, -1.0), 100.0, material_ground));
     world.add(make_shared<sphere>(point3(0.0, 0.0, -1.0), 0.5, material_center));
+    world.add(make_shared<sphere>(point3(-1.0, -1.0, -1.0), 0.05, ball_color));
+    world.add(make_shared<sphere>(point3(1.0, -1.0, -1.0), 0.05, ball_color));
+    world.add(make_shared<sphere>(point3(0.0, 1, -1.0), 0.05, ball_color));
+    world.add(make_shared<triangle>(point3(-1.0, -1.0, -1.0), point3(1.0, -1.0, -1.0), point3(0, 1, -1.0), material_center));
     world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), 0.5, material_left));
     world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), -0.4, material_left));
     world.add(make_shared<sphere>(point3(1.0, 0.0, -1.0), 0.5, material_right));
@@ -41,8 +47,8 @@ int main()
     cam.lookat = point3(0, 0, -1);
     cam.vup = vec3(0, 1, 0);
 
-    cam.defocus_angle = 10.0;
-    cam.focus_dist = 3.4;
+    // cam.defocus_angle = 90.0;
+    // cam.focus_dist = 3.4;
 
     auto start = high_resolution_clock::now();
     cam.render(world);
@@ -50,6 +56,6 @@ int main()
 
     auto duration = duration_cast<seconds>(stop - start);
 
-    clog << "this is how long the render took in seconds: "<<duration.count();
+    clog << "Duration of Render: " << duration.count();
     return 0;
 }
