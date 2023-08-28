@@ -40,8 +40,7 @@ public:
         rec.p = r.at(rec.t);                             //at point p
         rec.normal = (rec.p - center) / radius;          //calculate normal vector of surface
         rec.mat = mat;
-        vec3 outward_normal = (rec.p - center) / radius; //make into unit vector
-        rec.set_face_normal(r, outward_normal);
+        rec.set_face_normal(r, rec.normal);
 
         return true;
     }
