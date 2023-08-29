@@ -50,11 +50,12 @@ public:
             k += face_index[i];
         }
         //now store as triangle objects
-        for (unsigned int i = 0; i < max_vertex_index; ++i)
+        
+        for (unsigned int i = 0,j=0; i < num_triangles; ++i, j+=3)
         {
-            triangles.push_back(std::make_shared<triangle>(triangle_vertices[triangle_vertex_index[i]],
-                                                           triangle_vertices[triangle_vertex_index[i + 1]],
-                                                           triangle_vertices[triangle_vertex_index[i + 2]], mat));
+            triangles.push_back(std::make_shared<triangle>(triangle_vertices[triangle_vertex_index[j]],
+                                                           triangle_vertices[triangle_vertex_index[j + 1]],
+                                                           triangle_vertices[triangle_vertex_index[j + 2]], mat));
         }
     }
 
