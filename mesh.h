@@ -14,9 +14,9 @@ private:
     std::vector<shared_ptr<triangle>> triangles;
 
 public:
-    mesh(const unsigned int num_faces, const unsigned int face_index[],
-         const unsigned int vertex_index[],
-         const vec3 vertices[],
+    mesh(const unsigned int num_faces, const std::unique_ptr<unsigned int[]> &face_index,
+         const std::unique_ptr<unsigned int[]> &vertex_index,
+         const std::unique_ptr<vec3[]> &vertices,
          shared_ptr<material> material) : num_triangles(0), mat(material)
     {
         unsigned int k = 0, max_vertex_index = 0;

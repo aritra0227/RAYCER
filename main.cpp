@@ -4,16 +4,19 @@
 #include "hittable.h"
 #include "hittable_list.h"
 #include "material.h"
+#include "obj_parser.h"
 #include "sphere.h"
 #include "triangle.h"
 #include "utilities.h"
 #include <chrono>
+#include "mesh.h"
 using namespace std::chrono;
 using namespace std;
 
+
 /**
  * Responsible for constructing world of hittable objects
- * Then call ca
+ * Then call render
 */
 int main()
 {
@@ -21,41 +24,60 @@ int main()
 
     auto material_ground = make_shared<lambertian>(colour(0.8, 0.8, 0.0));
     auto material_center = make_shared<lambertian>(colour(0.1, 0.2, 0.5));
-    auto ball_color = make_shared<lambertian>(colour(1, 0.2, 0.5));
-    auto material_left = make_shared<dielectric>(1.5);
-    auto material_right = make_shared<metal>(colour(0.8, 0.6, 0.2), 0.0);
 
-    world.add(make_shared<sphere>(point3(0.0, -100.5, -1.0), 100.0, material_ground));
-    world.add(make_shared<sphere>(point3(0.0, 0.0, -1.0), 0.5, material_center));
-    world.add(make_shared<sphere>(point3(-1.0, -1.0, -1.0), 0.05, ball_color));
-    world.add(make_shared<sphere>(point3(1.0, -1.0, -1.0), 0.05, ball_color));
-    world.add(make_shared<sphere>(point3(0.0, 1, -1.0), 0.05, ball_color));
-    world.add(make_shared<triangle>(point3(-1.0, -1.0, -1.0), point3(1.0, -1.0, -1.0), point3(0, 1, -1.0), material_center));
-    world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), 0.5, material_left));
-    world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), -0.4, material_left));
-    world.add(make_shared<sphere>(point3(1.0, 0.0, -1.0), 0.5, material_right));
+    // world.add(make_shared<mesh>(npolys, faceIndex, vertsIndex, P, material_center));
+
+    // auto ball_color = make_shared<lambertian>(colour(1, 0.2, 0.5));
+    // auto material_left = make_shared<dielectric>(1.5);
+    // auto material_right = make_shared<metal>(colour(0.8, 0.6, 0.2), 0.0);
+
+    // world.add(make_shared<sphere>(point3(0.0, -100.5, -1.0), 100.0, material_ground));
+    // world.add(make_shared<sphere>(point3(0.0, 0.0, -1.0), 0.5, material_center));
+    // world.add(make_shared<sphere>(point3(-1.0, -1.0, -1.0), 0.05, ball_color));
+    // world.add(make_shared<sphere>(point3(1.0, -1.0, -1.0), 0.05, ball_color));
+    // world.add(make_shared<sphere>(point3(0.0, 1, -1.0), 0.05, ball_color));
+    // world.add(make_shared<triangle>(point3(-1.0, -1.0, -1.0), point3(1.0, -1.0, -1.0), point3(0, 1, -1.0), material_center));
+    // world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), 0.5, material_left));
+    // world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), -0.4, material_left));
+    // world.add(make_shared<sphere>(point3(1.0, 0.0, -1.0), 0.5, material_right));
+    // unsigned int numFaces = 6;
+    // unsigned int faceIndex[6] = {4, 4, 4, 4, 4, 4};
+    // unsigned int vertexIndex[24] = {0, 1, 2, 3, 0, 4, 5, 1, 1, 5, 6, 2, 0, 3, 7, 4, 5, 4, 7, 6, 2, 6, 7, 3};
+    // vec3 verts[8] = {vec3(-1, 1, 1), vec3(1, 1, 1), vec3(1, 1, -1), vec3(-1, 1, -1), vec3(-1, -1, 1), vec3(1, -1, 1), vec3(1, -1, -1), vec3(-1, -1, -1)};
+    // world.add(make_shared<mesh>(numFaces, faceIndex, vertexIndex, verts, material_center));
 
     camera cam;
 
     cam.aspect_ratio = 16.0 / 9.0;
     cam.image_width = 400;
-    cam.samples_per_pixel = 500;
+    // cam.image_width = 2000;
+    // cam.samples_per_pixel = 50;
+    cam.samples_per_pixel = 1;
     cam.max_depth = 50;
 
     cam.vfov = 50;
-    cam.lookfrom = point3(-2, 2, 1);
-    cam.lookat = point3(0, 0, -1);
+    cam.lookfrom = point3(0, 50, 200);
+    // cam.lookfrom = point3(-5, 2, 5);
+    // cam.lookat = point3(-0.5, 0.5, 0.5);
     cam.vup = vec3(0, 1, 0);
 
     // cam.defocus_angle = 90.0;
     // cam.focus_dist = 3.4;
+    auto start_parse = high_resolution_clock::now();
+    Parser obj_parser;
+    obj_parser.parse_obj("mag.obj");
+    world.add(std::make_shared<mesh>(obj_parser.num_faces, obj_parser.face_index, obj_parser.vertex_index, obj_parser.vertices, material_center));
+    auto stop_parse = high_resolution_clock::now();
+    auto duration_parse = duration_cast<seconds>(stop_parse - start_parse);
+    clog << "DURATION OF PARSING " << duration_parse.count() << endl;
 
-    auto start = high_resolution_clock::now();
+    auto start_render = high_resolution_clock::now();
     cam.render(world);
-    auto stop = high_resolution_clock::now();
+    auto stop_render = high_resolution_clock::now();
 
-    auto duration = duration_cast<seconds>(stop - start);
+    auto duration_render = duration_cast<seconds>(stop_render - start_render);
 
-    clog << "Duration of Render: " << duration.count();
+    clog << "Duration of Render: " << duration_render.count() << endl;;
+
     return 0;
 }
