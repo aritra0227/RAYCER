@@ -1,5 +1,5 @@
 # RAYCER
-- A path tracer.
+A path tracer.
 
 ## Some Rendered Images:
 
