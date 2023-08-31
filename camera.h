@@ -11,7 +11,7 @@
 #include <queue>
 using namespace std;
 
-#define THREAD_COUNT 8
+#define THREAD_COUNT 20
 
 static unsigned int NUM_TASK;
 
@@ -36,6 +36,9 @@ public:
 
     double defocus_angle = 0; // Variation angle of rays through each pixel
     double focus_dist = 10;   // Distance from camera lookfrom point to plane of perfect focus
+    // colour background_colour = colour(1.0, 1.0, 1.0);
+    colour background_colour = colour(0.70, 0.80, 1.00);
+    bool contains_external_light_source = false;
 
     /**
      * CAUTION: Multithreaded implementation!!!
@@ -49,7 +52,7 @@ public:
         cout << "P3\n"
              << image_width << ' ' << image_height << "\n255\n";
         for (int j = 0; j < image_height; ++j)
-        {   
+        {
             TASK_Q.push(j);
             NUM_TASK++;
         }
@@ -164,14 +167,13 @@ private:
         {
             ray scattered;
             colour attenuation;
+            colour light_emitted = rec.mat->emit_light();
             if (rec.mat->scatter(r, rec, attenuation, scattered))
-                return attenuation * ray_colour(scattered, depth - 1, world);
-            return colour(0, 0, 0);
+                return (attenuation * ray_colour(scattered, depth - 1, world)) + light_emitted;
+            return light_emitted;
         }
-        vec3 unit_direction = unit_vector(r.direction());
-        double a = 0.5 * (unit_direction.y() + 1.0); //converts from range [-1,1] to [0,1]
-        return (1.0 - a) * colour(1.0, 1.0, 1.0) + a * colour(0.5, 0.7, 1.0);
-        // return colour(1.0,1.0,1.0);
+        else
+            return background_colour;
     }
 
     ray get_ray(int i, int j) const

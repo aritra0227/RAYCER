@@ -12,6 +12,11 @@ class material
 public:
     virtual ~material() = default;
 
+    virtual colour emit_light() const
+    {
+        return colour(0, 0, 0);
+    }
+
     virtual bool scatter(
         const ray &r_in, const hit_record &rec, colour &attenuation, ray &scattered) const = 0;
 };
@@ -61,7 +66,7 @@ class dielectric : public material
 {
 private:
     double ir; // Index of Refraction
-    
+
     static double reflectance(double cosine, double ref_idx)
     {
         // Use Schlick's approximation for reflectance.
@@ -93,6 +98,30 @@ public:
         scattered = ray(rec.p, direction);
         return true;
     }
+};
+
+class light : public material
+{
+public:
+    light(colour c) : light_colour(c) {}
+
+    bool scatter(const ray &r_in, const hit_record &rec, colour &attenuation, ray &scattered)
+        const override
+    {
+        (void)r_in;
+        (void)rec;
+        (void)attenuation;
+        (void)scattered;
+        return false;
+    }
+
+    colour emit_light() const override
+    {
+        return light_colour;
+    }
+
+private:
+    colour light_colour;
 };
 
 #endif
