@@ -11,6 +11,6 @@ A path tracer.
   
 ![git_example_ls_dof_1000s](https://github.com/aritra0227/RAYCER/assets/54759130/5ea89f13-e33e-41e7-b01b-b1225ffc96c3)
 
-### * A Magnolia on a metal surface:
+### * A Magnolia on top of a metal surface close to a light source:
 
 ![git_example_mag_1000](https://github.com/aritra0227/RAYCER/assets/54759130/96f8cfec-1d45-46ab-a733-1c6a89e1e0d7)
