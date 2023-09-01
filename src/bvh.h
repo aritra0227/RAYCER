@@ -3,7 +3,7 @@
 
 #include "acceleration.h"
 #include "interval.h"
-
+#include "material.h"
 /**
  * TLAS: Top Level Acceleration Structure
  * Should mimic hittable_list since that is what we will be replacing:
@@ -12,32 +12,25 @@
 class BVH : public accel
 {
 private:
-    static const int num_plane_set_normals = 3;
+    static const int num_plane_set_normals = 7;
     static const vec3 plane_set_normals[num_plane_set_normals];
     /**
     * bounding box enclosing an object
     */
     struct bbox
     {
-        double bounds[num_plane_set_normals][2]; // [i][0] = min, [i][1] = max
-        bbox()
+        interval bounds[num_plane_set_normals];
+        bbox() {}
+        bool hit(double *NdotOrig, double *NdotDir, double &tnear, double &tfar, size_t &pi)
         {
             for (size_t i = 0; i < num_plane_set_normals; ++i)
             {
-                bounds[i][0] = infinity;
-                bounds[i][1] = -infinity;
-            }
-        }
-        bool hit(double *NdotOrig, double *NdotDir, double &tnear, double &tfar)
-        {
-            for (size_t i = 0; i < num_plane_set_normals; ++i)
-            {
-                double tn = (bounds[i][0] - NdotOrig[i]) / NdotDir[i];
-                double tf = (bounds[i][1] - NdotOrig[i]) / NdotDir[i];
+                double tn = (bounds[i].min - NdotOrig[i]) / NdotDir[i];
+                double tf = (bounds[i].max - NdotOrig[i]) / NdotDir[i];
                 if (NdotDir[i] < 0)
                     std::swap(tn, tf);
                 if (tn > tnear)
-                    tnear = tn;
+                    tnear = tn, pi = i;
                 if (tf < tfar)
                     tfar = tf;
                 if (tnear > tfar)
@@ -63,7 +56,7 @@ public:
         {
             for (size_t j = 0; j < num_plane_set_normals; ++j)
             {
-                objects[i]->compute_bounds(plane_set_normals[j], objects_bounds[i].bounds[j][0], objects_bounds[i].bounds[j][1]);
+                objects[i]->compute_bounds(plane_set_normals[j], objects_bounds[i].bounds[j].min, objects_bounds[i].bounds[j].max);
             }
         }
     }
@@ -81,37 +74,36 @@ public:
         }
         //now just iterate for now to find the closest bbox:
         double tclosest_object_so_far = ray_t.max;
-        bool hit_any_boxes = false;
-        size_t closest_object_index;
-        std::clog << "NUMBER OF OBJECTS " << objects.size() << std::endl;
+        bool hit_any_objects = false;
+        // std::clog << "NUMBER OF OBJECTS " << objects.size() << std::endl;
+        hit_record temp_rec;
         for (size_t i = 0; i < objects.size(); ++i)
         {
-            double tnear = -infinity, tfar = infinity;
-            if (objects_bounds[i].hit(NdotOrig, NdotDir, tnear, tfar))
+            double tnear = ray_t.min, tfar = tclosest_object_so_far;
+            size_t pi;
+            if (objects_bounds[i].hit(NdotOrig, NdotDir, tnear, tfar, pi))
             {
-                if (tnear < tclosest_object_so_far)
+                if (tnear < tclosest_object_so_far) //cloest bounding box hit
                 {
-                    tclosest_object_so_far = tnear;
-                    hit_any_boxes = true;
-                    closest_object_index = i;
+                    if (objects[i]->hit(r, ray_t, temp_rec))
+                    {
+                        hit_any_objects = true;
+                        tclosest_object_so_far = temp_rec.t;
+                        rec = temp_rec;
+                    }
                 }
             }
         }
-        if (hit_any_boxes)
-        {
-            // return objects[closest_object_index]->hit(r, interval(ray_t.min, tclosest_object_so_far), rec);
-            return objects[closest_object_index]->hit(r, ray_t, rec);
-        }
-        return false;
+        return hit_any_objects;
     }
 };
 const vec3 BVH::plane_set_normals[BVH::num_plane_set_normals] = {
     vec3(1, 0, 0),
     vec3(0, 1, 0),
-    vec3(0, 0, 1)};
-    // vec3((sqrtf(3) / 3.f), (sqrtf(3) / 3.f), (sqrtf(3) / 3.f)),
-    // vec3(-sqrtf(3) / 3.f, sqrtf(3) / 3.f, sqrtf(3) / 3.f),
-    // vec3(-sqrtf(3) / 3.f, -sqrtf(3) / 3.f, sqrtf(3) / 3.f),
-    // vec3(sqrtf(3) / 3.f, -sqrtf(3) / 3.f, sqrtf(3) / 3.f)};
+    vec3(0, 0, 1),
+    vec3((sqrtf(3) / 3.f), (sqrtf(3) / 3.f), (sqrtf(3) / 3.f)),
+    vec3(-sqrtf(3) / 3.f, sqrtf(3) / 3.f, sqrtf(3) / 3.f),
+    vec3(-sqrtf(3) / 3.f, -sqrtf(3) / 3.f, sqrtf(3) / 3.f),
+    vec3(sqrtf(3) / 3.f, -sqrtf(3) / 3.f, sqrtf(3) / 3.f)};
 
 #endif

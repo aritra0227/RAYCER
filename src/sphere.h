@@ -14,7 +14,15 @@ private:
 
 public:
     sphere(point3 _center, double _radius, shared_ptr<material> _material)
-      : center(_center), radius(_radius), mat(_material) {}
+        : center(_center), radius(_radius), mat(_material) {}
+
+    void compute_bounds(vec3 normal, double &dnear, double &dfar) override
+    {
+        double vec_dot = dot(center, normal);
+        dnear = vec_dot - radius;
+        dfar = vec_dot + radius;
+    }
+
     bool hit(const ray &r, interval ray_t, hit_record &rec) const override
     {
         vec3 oc = r.origin() - center;
@@ -36,9 +44,9 @@ public:
                 return false;
         }
 
-        rec.t = root;                                    //hits at time t
-        rec.p = r.at(rec.t);                             //at point p
-        rec.normal = (rec.p - center) / radius;          //calculate normal vector of surface
+        rec.t = root;                           //hits at time t
+        rec.p = r.at(rec.t);                    //at point p
+        rec.normal = (rec.p - center) / radius; //calculate normal vector of surface
         rec.mat = mat;
         rec.set_face_normal(r, rec.normal);
 
