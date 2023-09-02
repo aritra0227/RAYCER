@@ -11,7 +11,9 @@ class mesh : public hittable
 private:
     unsigned int num_triangles;
     shared_ptr<material> mat;
+    unique_ptr<vec3[]> triangle_vertices;
     std::vector<shared_ptr<triangle>> triangles;
+    unsigned int max_vertex_index;
 
 public:
     mesh(const unsigned int num_faces, const std::unique_ptr<unsigned int[]> &face_index,
@@ -19,7 +21,7 @@ public:
          const std::unique_ptr<vec3[]> &vertices,
          shared_ptr<material> material) : num_triangles(0), mat(material)
     {
-        unsigned int k = 0, max_vertex_index = 0;
+        unsigned int k = 0;
         for (unsigned int i = 0; i < num_faces; ++i)
         {
             num_triangles += face_index[i] - 2;
@@ -32,7 +34,7 @@ public:
         }
         max_vertex_index += 1;
 
-        unique_ptr<vec3[]> triangle_vertices = unique_ptr<vec3[]>(new vec3[max_vertex_index]);
+        triangle_vertices = unique_ptr<vec3[]>(new vec3[max_vertex_index]);
         for (unsigned int i = 0; i < max_vertex_index; ++i)
             triangle_vertices[i] = vertices[i];
 
@@ -50,12 +52,25 @@ public:
             k += face_index[i];
         }
         //now store as triangle objects
-        
-        for (unsigned int i = 0,j=0; i < num_triangles; ++i, j+=3)
+
+        for (unsigned int i = 0, j = 0; i < num_triangles; ++i, j += 3)
         {
             triangles.push_back(std::make_shared<triangle>(triangle_vertices[triangle_vertex_index[j]],
                                                            triangle_vertices[triangle_vertex_index[j + 1]],
                                                            triangle_vertices[triangle_vertex_index[j + 2]], mat));
+        }
+    }
+
+    void compute_bounds(vec3 normal, double &dnear, double &dfar) override
+    {
+        double vec_dot;
+        for (size_t i = 0; i < max_vertex_index; ++i)
+        {
+            vec_dot = dot(normal, triangle_vertices[i]);
+            if (vec_dot < dnear)
+                dnear = vec_dot;
+            if (vec_dot > dfar)
+                dfar = vec_dot;
         }
     }
 
