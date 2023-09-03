@@ -1,5 +1,5 @@
 # RAYCER
-RAYCER ia a simple path tracer following physically based rendering principles.
+RAYCER is a simple path tracer following physically based rendering principles.
 
 ## Key Features:
 - **High-Speed Rendering:** Utilizes multithreading and BVH as a top level acceleration structure for rapid rendering.
