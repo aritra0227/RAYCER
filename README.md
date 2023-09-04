@@ -3,7 +3,7 @@ RAYCER is a simple path tracer following physically based rendering principles.
 
 ## Key Features:
 - **High-Speed Rendering:** Utilizes multithreading and BVH as a top level acceleration structure for rapid rendering.
-- **Mesh Integration:** Easily load and render meshes from object files.
+- **Mesh Integration:** Easily load and render meshes from object files. Additionally supports gouraud shading.
 - **Realistic Lighting:** Ability to simulate how light interacts with surfaces through global illumination, creating lifelike renders.
 - **Diverse Materials:** Supports metals, dielectrics, and diffuse/matte materials.
 
@@ -20,3 +20,8 @@ RAYCER is a simple path tracer following physically based rendering principles.
 ### A flower on top of a metal surface close to a light source:
 
 ![git_example_mag_1000](https://github.com/aritra0227/RAYCER/assets/54759130/96f8cfec-1d45-46ab-a733-1c6a89e1e0d7)
+
+### Now with smooth (gouraud) shading:
+
+![smooth_mag](https://github.com/aritra0227/RAYCER/assets/54759130/7daef3dc-8262-471b-a36b-03a85a44e3fb)
+
