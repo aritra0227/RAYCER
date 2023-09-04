@@ -1,6 +1,7 @@
+# defined flags: DISABLE_SPACE_PARTITION, ENABLE_SMOOTH_SHADING
 CC = g++
-# CFLAGS = -Wall -Wextra -std=c++11 -pthread -DDISABLE_SPACE_PARTITION
-CFLAGS = -Wall -Wextra -std=c++11 -pthread 
+CFLAGS = -Wall -Wextra -std=c++11 -pthread -DDISABLE_SPACE_PARTITION 
+# CFLAGS = -Wall -Wextra -std=c++11 -pthread 
 SRCS = main.cpp 
 
 OBJS = $(SRCS:.cpp=.o)

@@ -4,6 +4,7 @@
 #include "vec3.h"
 #include "material.h"
 #include "triangle.h"
+#include "vertex_info.h"
 using std::unique_ptr;
 
 class mesh : public hittable
@@ -13,6 +14,7 @@ private:
     shared_ptr<material> mat;
     unique_ptr<vec3[]> triangle_vertices;
     std::vector<shared_ptr<triangle>> triangles;
+    std::vector<vertex_info> vertex_normals;
     unsigned int max_vertex_index;
 
 public:
@@ -36,7 +38,18 @@ public:
 
         triangle_vertices = unique_ptr<vec3[]>(new vec3[max_vertex_index]);
         for (unsigned int i = 0; i < max_vertex_index; ++i)
+        {
+
             triangle_vertices[i] = vertices[i];
+        }
+//only calculate vertex normals if smooth shading is enabled:
+#if ENABLE_SMOOTH_SHADING
+        for (unsigned int i = 0; i < max_vertex_index; ++i)
+        {
+
+            vertex_normals.emplace_back(vertex_info(triangle_vertices[i]));
+        }
+#endif
 
         unique_ptr<unsigned int[]> triangle_vertex_index = unique_ptr<unsigned int[]>(new unsigned int[num_triangles * 3]);
         unsigned int curr_index = 0;
@@ -51,14 +64,32 @@ public:
             }
             k += face_index[i];
         }
-        //now store as triangle objects
-
+//now store as triangle objects
+#if ENABLE_SMOOTH_SHADING
         for (unsigned int i = 0, j = 0; i < num_triangles; ++i, j += 3)
         {
             triangles.push_back(std::make_shared<triangle>(triangle_vertices[triangle_vertex_index[j]],
                                                            triangle_vertices[triangle_vertex_index[j + 1]],
-                                                           triangle_vertices[triangle_vertex_index[j + 2]], mat));
+                                                           triangle_vertices[triangle_vertex_index[j + 2]],
+                                                           vertex_normals[triangle_vertex_index[j]],
+                                                           vertex_normals[triangle_vertex_index[j + 1]],
+                                                           vertex_normals[triangle_vertex_index[j + 2]], mat));
+            triangles.back()->v0_info.face_count += 1;
+            triangles.back()->v0_info.sum_face_normals += triangles.back()->face_normal;
+            triangles.back()->v1_info.face_count += 1;
+            triangles.back()->v1_info.sum_face_normals += triangles.back()->face_normal;
+            triangles.back()->v2_info.face_count += 1;
+            triangles.back()->v2_info.sum_face_normals += triangles.back()->face_normal;
         }
+#else
+        for (unsigned int i = 0, j = 0; i < num_triangles; ++i, j += 3)
+        {
+            triangles.push_back(std::make_shared<triangle>(triangle_vertices[triangle_vertex_index[j]],
+                                                           triangle_vertices[triangle_vertex_index[j + 1]],
+                                                           triangle_vertices[triangle_vertex_index[j + 2]],
+                                                           mat));
+        }
+#endif
     }
 
     void compute_bounds(vec3 normal, double &dnear, double &dfar) override
